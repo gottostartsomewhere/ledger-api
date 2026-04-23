@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --border: #e7e7e7;
+      --border-strong: #d4d4d4;
+      --text: #0a0a0a;
+      --text-muted: #737373;
+      --text-subtle: #a3a3a3;
+      --hover: #f4f4f4;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      font-feature-settings: "cv11", "ss01";
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px; line-height: 1.5;
+    }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; }
+    .tnum { font-variant-numeric: tabular-nums; }
+    button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
+
+    /* layout primitives */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+    .surface { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+    .divider { border-top: 1px solid var(--border); }
+    .muted { color: var(--text-muted); }
+    .subtle { color: var(--text-subtle); }
+
+    /* type scale */
+    h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+    .eyebrow { text-transform: uppercase; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: var(--text-muted); }
+    .stat-num { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+    .balance-num { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+
+    /* inputs */
+    input, select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    input:focus, select:focus { border-color: var(--text); }
+    label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+
+    /* buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 8px 14px; border-radius: 4px;
+      font-size: 13px; font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer; transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--text); color: var(--surface); }
+    .btn-primary:hover { background: #2a2a2a; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+    .btn-secondary:hover { background: var(--hover); }
+    .btn-ghost { background: transparent; color: var(--text-muted); padding: 6px 10px; }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* tabs */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); gap: 2px; }
+    .tab { padding: 10px 2px; margin-right: 20px; font-size: 13px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; background: none; border-left: none; border-right: none; border-top: none; }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+    /* table */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-weight: 500; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg); }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    tr:last-child td { border-bottom: none; }
+    .row-hover:hover { background: var(--bg); }
+
+    /* misc */
+    a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--text-subtle); transition: border-color 0.12s; }
+    a:hover { border-bottom-color: var(--text); }
+    a.plain { border-bottom: none; color: var(--text-muted); }
+    a.plain:hover { color: var(--text); }
+
+    .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--border-strong); border-radius: 3px; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+
+    /* toasts */
+    #toasts { position: fixed; top: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 8px; width: 320px; pointer-events: none; }
+    .toast { background: var(--text); color: var(--surface); border-radius: 4px; padding: 10px 14px; font-size: 13px; pointer-events: auto; opacity: 0; transform: translateY(-4px); transition: opacity 0.2s, transform 0.2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--surface); border-radius: 8px; width: 100%; max-width: 420px; padding: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); }
+
+    /* tiny animation */
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* numeric change (subtle — no green flash) */
+    .changed { transition: opacity 0.4s; opacity: 0.4; }
+
+    .hidden { display: none !important; }
+
+    /* grid helpers */
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+    @media (max-width: 768px) { .grid-3, .grid-2-1 { grid-template-columns: 1fr; } }
+
+    /* account cards */
+    .account {
+      padding: 20px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--surface); transition: border-color 0.12s;
+    }
+    .account:hover { border-color: var(--border-strong); }
+
+    /* flex helpers */
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .justify-between { justify-content: space-between; }
+    .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+    .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; } .mt-6 { margin-top: 24px; } .mt-8 { margin-top: 32px; }
+    .mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; } .mb-6 { margin-bottom: 24px; }
+    .py-3 { padding-top: 12px; padding-bottom: 12px; } .py-4 { padding-top: 16px; padding-bottom: 16px; } .py-6 { padding-top: 24px; padding-bottom: 24px; } .py-8 { padding-top: 32px; padding-bottom: 32px; }
+    .px-4 { padding-left: 16px; padding-right: 16px; } .px-5 { padding-left: 20px; padding-right: 20px; } .px-6 { padding-left: 24px; padding-right: 24px; }
+    .p-4 { padding: 16px; } .p-5 { padding: 20px; } .p-6 { padding: 24px; } .p-8 { padding: 32px; }
+    .w-full { width: 100%; } .flex-1 { flex: 1; }
+    .text-right { text-align: right; } .text-center { text-align: center; }
+    .text-xs { font-size: 11px; } .text-sm { font-size: 13px; } .text-lg { font-size: 16px; }
+    .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; }
+    .cursor-pointer { cursor: pointer; }
+    .border-b { border-bottom: 1px solid var(--border); }
+    .space-y-3 > * + * { margin-top: 12px; }
+    .space-y-4 > * + * { margin-top: 16px; }
+    .space-y-6 > * + * { margin-top: 24px; }
+  </style>
+</head>
+<body>
+
+  <div id="toasts"></div>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;">
+    <div style="width: 100%; max-width: 380px;">
+      <div class="mb-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div style="width: 32px; height: 32px; background: var(--text); color: var(--surface); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">L</div>
+          <div>
+            <div style="font-weight: 600; font-size: 15px;">Ledger</div>
+            <div class="text-xs muted">Double-entry payment system</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="surface p-6">
+        <div class="tabs mb-6">
+          <button id="tab-login" class="tab active">Sign in</button>
+          <button id="tab-register" class="tab">Create account</button>
+        </div>
+
+        <form id="auth-form" class="space-y-4">
+          <div>
+            <label>Email</label>
+            <input type="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+          </div>
+          <div>
+            <label>Password</label>
+            <input type="password" name="password" required minlength="8" autocomplete="current-password" placeholder="At least 8 characters" />
+          </div>
+          <button id="auth-submit" type="submit" class="btn btn-primary w-full" style="margin-top: 20px;">Continue</button>
+        </form>
+      </div>
+
+      <div class="text-xs muted mt-6 text-center">
+        Data is stored locally in your Postgres container.
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <!-- NAV -->
+    <nav style="background: var(--surface); border-bottom: 1px solid var(--border);">
+      <div class="container flex items-center justify-between" style="height: 56px;">
+        <div class="flex items-center gap-3">
+          <div style="width: 26px; height: 26px; background: var(--text); color: var(--surface); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;">L</div>
+          <span style="font-weight: 600;">Ledger</span>
+          <span class="pill" id="env-pill">local</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <a href="/docs" target="_blank" class="plain text-sm">API reference</a>
+          <a href="/metrics" target="_blank" class="plain text-sm">Metrics</a>
+          <span style="width: 1px; height: 20px; background: var(--border);"></span>
+          <span class="mono text-sm muted" id="user-email">…</span>
+          <button id="logout-btn" class="btn btn-ghost btn-sm">Sign out</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-8 space-y-6">
+
+      <!-- HEADER -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 style="font-size: 24px;">Overview</h1>
+          <p class="muted text-sm mt-1">Your accounts and recent ledger activity.</p>
+        </div>
+        <button id="new-account-btn" class="btn btn-primary">New account</button>
+      </div>
+
+      <!-- STATS -->
+      <div class="grid-3">
+        <div class="surface p-5">
+          <div class="eyebrow">Accounts</div>
+          <div class="stat-num tnum mt-3" id="stat-accounts">0</div>
+        </div>
+        <div class="surface p-5">
+          <div class="eyebrow">Inflow (selected account)</div>
+          <div class="stat-num tnum mt-3 mono" id="stat-moved">—</div>
+        </div>
+        <div class="surface p-5">
+          <div class="eyebrow">Entries</div>
+          <div class="stat-num tnum mt-3" id="stat-entries">0</div>
+          <div class="text-xs subtle mt-1">Immutable debit + credit rows</div>
+        </div>
+      </div>
+
+      <!-- ACCOUNTS + TRANSFER -->
+      <div class="grid-2-1">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="eyebrow">Accounts</h2>
+          </div>
+          <div id="accounts-list" class="space-y-3"></div>
+        </div>
+
+        <div class="surface p-5">
+          <h2 class="eyebrow mb-4">Transfer</h2>
+          <form id="transfer-form" class="space-y-3">
+            <div>
+              <label>From</label>
+              <select name="from_account_id" required></select>
+            </div>
+            <div>
+              <label>To (account ID)</label>
+              <input name="to_account_id" required placeholder="uuid" class="mono" style="font-size: 12px;" />
+            </div>
+            <div>
+              <label>Amount</label>
+              <input name="amount" required type="number" step="0.01" min="0.01" placeholder="0.00" class="mono tnum" />
+            </div>
+            <button type="submit" class="btn btn-primary w-full" style="margin-top: 16px;">Send transfer</button>
+            <p class="text-xs subtle" style="margin-top: 12px;">Cross-currency transfers require an FX rate (see admin endpoint).</p>
+          </form>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="surface">
+        <div class="flex items-center justify-between px-5 py-4 border-b">
+          <h2 class="eyebrow">Ledger entries</h2>
+          <div class="flex items-center gap-3">
+            <select id="history-account-select" style="width: auto; font-size: 12px; padding: 5px 8px;"></select>
+            <button id="refresh-btn" class="btn btn-ghost btn-sm">Refresh</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Kind</th>
+                <th>Direction</th>
+                <th style="text-align: right;">Amount</th>
+                <th>Transfer</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="text-xs subtle text-center py-6">
+        <span class="mono">POST /auth</span>
+        &nbsp;·&nbsp;
+        <span class="mono">/accounts</span>
+        &nbsp;·&nbsp;
+        <span class="mono">/transactions</span>
+        &nbsp;·&nbsp;
+        <span class="mono">/admin</span>
+        &nbsp;·&nbsp;
+        <span class="mono">/webhooks</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal fade-in">
+      <h3 id="modal-title" class="mb-4" style="font-size: 16px;">…</h3>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+<script>
+// ---------------------------------------------------------------------------
+// state + api
+// ---------------------------------------------------------------------------
+const state = {
+  accessToken: localStorage.getItem('access_token') || null,
+  refreshToken: localStorage.getItem('refresh_token') || null,
+  email: localStorage.getItem('email') || null,
+  accounts: [],
+  authMode: 'login',
+  selectedHistoryAccount: null,
+  lastBalances: {},
+};
+
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (state.accessToken) headers['Authorization'] = `Bearer ${state.accessToken}`;
+  const res = await fetch(path, { ...opts, headers });
+  const text = await res.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  if (!res.ok) {
+    const err = new Error(extractError(body) || `HTTP ${res.status}`);
+    err.status = res.status; err.body = body;
+    throw err;
+  }
+  return body;
+}
+
+function extractError(body) {
+  if (!body) return null;
+  if (typeof body === 'string') return body;
+  if (typeof body.detail === 'string') return body.detail;
+  if (Array.isArray(body.detail)) return body.detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+  return body.error || null;
+}
+
+function uuid() {
+  return (crypto.randomUUID && crypto.randomUUID()) ||
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+}
+
+function fmtAmount(amount) {
+  return Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
+function shortId(id) { return id ? id.slice(0, 8) : ''; }
+
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return `${s|0}s ago`;
+  if (s < 3600) return `${s/60|0}m ago`;
+  if (s < 86400) return `${s/3600|0}h ago`;
+  return `${s/86400|0}d ago`;
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+// ---------------------------------------------------------------------------
+// toasts
+// ---------------------------------------------------------------------------
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); }, 3000);
+  setTimeout(() => el.remove(), 3400);
+}
+
+// ---------------------------------------------------------------------------
+// auth
+// ---------------------------------------------------------------------------
+document.getElementById('tab-login').onclick = () => setAuthMode('login');
+document.getElementById('tab-register').onclick = () => setAuthMode('register');
+
+function setAuthMode(mode) {
+  state.authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+  document.getElementById('auth-submit').textContent = mode === 'login' ? 'Sign in' : 'Create account';
+}
+
+document.getElementById('auth-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('auth-submit');
+  btn.disabled = true;
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+    if (state.authMode === 'register') {
+      await api('/auth/register', { method: 'POST', body: JSON.stringify(data) });
+    }
+    const tokens = await api('/auth/login', { method: 'POST', body: JSON.stringify(data) });
+    state.accessToken = tokens.access_token;
+    state.refreshToken = tokens.refresh_token;
+    state.email = data.email;
+    localStorage.setItem('access_token', tokens.access_token);
+    localStorage.setItem('refresh_token', tokens.refresh_token);
+    localStorage.setItem('email', data.email);
+    await showDashboard();
+  } catch (err) {
+    toast(err.message || 'Authentication failed');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+document.getElementById('logout-btn').onclick = () => {
+  state.accessToken = null; state.refreshToken = null; state.email = null;
+  localStorage.clear();
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+};
+
+// ---------------------------------------------------------------------------
+// dashboard
+// ---------------------------------------------------------------------------
+async function showDashboard() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('user-email').textContent = state.email || '';
+  await refreshAll();
+  startPolling();
+}
+
+async function refreshAll() {
+  try {
+    const accounts = await api('/accounts');
+    state.accounts = accounts;
+    renderAccounts(accounts);
+    populateTransferFrom(accounts);
+    populateHistorySelect(accounts);
+    document.getElementById('stat-accounts').textContent = accounts.length;
+    if (accounts.length && !state.selectedHistoryAccount) {
+      state.selectedHistoryAccount = accounts[0].id;
+      document.getElementById('history-account-select').value = accounts[0].id;
+    }
+    if (state.selectedHistoryAccount) await loadHistory(state.selectedHistoryAccount);
+  } catch (err) {
+    if (err.status === 401) {
+      toast('Session expired');
+      document.getElementById('logout-btn').click();
+    } else {
+      toast(err.message);
+    }
+  }
+}
+
+function renderAccounts(accounts) {
+  const list = document.getElementById('accounts-list');
+  if (accounts.length === 0) {
+    list.innerHTML = `
+      <div class="surface p-8 text-center" style="border-style: dashed;">
+        <p class="muted text-sm mb-4">No accounts yet.</p>
+        <button onclick="openNewAccountModal()" class="btn btn-primary">Create first account</button>
+      </div>`;
+    return;
+  }
+  list.innerHTML = accounts.map(a => {
+    const prev = state.lastBalances[a.id];
+    state.lastBalances[a.id] = a.balance;
+    const statusPill = a.status === 'ACTIVE' ? '' : `<span class="pill" style="margin-left: 8px;">${a.status}</span>`;
+    return `
+      <div class="account">
+        <div class="flex items-start justify-between mb-4">
+          <div style="min-width: 0; flex: 1;">
+            <div class="flex items-center" style="gap: 6px;">
+              <span class="font-medium">${a.name ? escapeHtml(a.name) : 'Unnamed account'}</span>
+              ${statusPill}
+            </div>
+            <div class="text-xs subtle mono mt-1 cursor-pointer" onclick="copyText('${a.id}')" title="Click to copy">${a.id}</div>
+          </div>
+          <div class="text-right" style="margin-left: 16px;">
+            <div class="text-xs muted">${a.currency}</div>
+            <div class="balance-num tnum mono mt-1">${fmtAmount(a.balance)}</div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick='openDepositModal(${JSON.stringify(a)})' class="btn btn-secondary btn-sm flex-1">Deposit</button>
+          <button onclick='openWithdrawModal(${JSON.stringify(a)})' class="btn btn-secondary btn-sm flex-1">Withdraw</button>
+          <button onclick='openHistoryFor("${a.id}")' class="btn btn-secondary btn-sm flex-1">History</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function populateTransferFrom(accounts) {
+  const sel = document.querySelector('select[name="from_account_id"]');
+  sel.innerHTML = accounts.length === 0
+    ? '<option>No accounts</option>'
+    : accounts.map(a => `<option value="${a.id}">${a.name || 'Unnamed'} · ${a.currency} · ${fmtAmount(a.balance)}</option>`).join('');
+}
+
+function populateHistorySelect(accounts) {
+  const sel = document.getElementById('history-account-select');
+  const cur = sel.value;
+  sel.innerHTML = accounts.map(a => `<option value="${a.id}">${a.name || 'Unnamed'} · ${a.currency}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+document.getElementById('history-account-select').onchange = (e) => {
+  state.selectedHistoryAccount = e.target.value;
+  loadHistory(e.target.value);
+};
+
+document.getElementById('refresh-btn').onclick = () => refreshAll();
+
+async function loadHistory(accountId) {
+  try {
+    const resp = await api(`/transactions/history/${accountId}?limit=25`);
+    renderHistory(resp);
+  } catch (err) {
+    toast('Could not load history: ' + err.message);
+  }
+}
+
+function renderHistory(resp) {
+  const body = document.getElementById('history-body');
+  const items = resp.items || [];
+  document.getElementById('stat-entries').textContent = resp.total ?? items.length;
+
+  const credits = items.filter(t => t.entry_type === 'CREDIT');
+  const inflow = credits.reduce((s, t) => s + Number(t.amount), 0);
+  const currency = items[0]?.currency || '';
+  document.getElementById('stat-moved').textContent = inflow > 0
+    ? fmtAmount(inflow) + ' ' + currency
+    : '—';
+
+  if (items.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" class="text-center subtle" style="padding: 40px 16px;">No entries yet</td></tr>`;
+    return;
+  }
+  body.innerHTML = items.map(t => {
+    const isCredit = t.entry_type === 'CREDIT';
+    const sign = isCredit ? '+' : '−';
+    return `
+      <tr class="row-hover">
+        <td class="muted text-xs" title="${t.created_at}">${timeAgo(t.created_at)}</td>
+        <td class="text-xs" style="text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500;">${t.kind.toLowerCase()}</td>
+        <td class="text-xs muted">${isCredit ? 'credit' : 'debit'}</td>
+        <td class="text-right mono tnum">${sign}${fmtAmount(t.amount)} <span class="subtle">${t.currency}</span></td>
+        <td class="mono text-xs subtle cursor-pointer" onclick="copyText('${t.transfer_id}')" title="${t.transfer_id}">${shortId(t.transfer_id)}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ---------------------------------------------------------------------------
+// modals
+// ---------------------------------------------------------------------------
+function openModal(title, bodyHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal-backdrop').classList.add('hidden'); }
+document.getElementById('modal-backdrop').onclick = (e) => { if (e.target.id === 'modal-backdrop') closeModal(); };
+
+document.getElementById('new-account-btn').onclick = () => openNewAccountModal();
+
+function openNewAccountModal() {
+  openModal('New account', `
+    <form id="new-account-form" class="space-y-3">
+      <div>
+        <label>Name (optional)</label>
+        <input name="name" placeholder="Main checking" />
+      </div>
+      <div>
+        <label>Currency</label>
+        <select name="currency">
+          <option>USD</option><option>EUR</option><option>INR</option><option>GBP</option><option>JPY</option><option>CAD</option><option>AUD</option>
+        </select>
+      </div>
+      <div class="flex gap-2" style="margin-top: 20px;">
+        <button type="button" onclick="closeModal()" class="btn btn-secondary flex-1">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1">Create</button>
+      </div>
+    </form>`);
+  document.getElementById('new-account-form').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const data = Object.fromEntries(new FormData(e.target));
+      if (!data.name) delete data.name;
+      await api('/accounts', { method: 'POST', body: JSON.stringify(data) });
+      closeModal();
+      toast('Account created');
+      await refreshAll();
+    } catch (err) { toast(err.message); }
+  };
+}
+
+function openDepositModal(account) {
+  openModal(`Deposit to ${account.name || account.currency + ' account'}`, `
+    <form id="dep-form" class="space-y-3">
+      <p class="text-xs muted">Currency: <span class="mono">${account.currency}</span></p>
+      <div>
+        <label>Amount</label>
+        <input name="amount" type="number" step="0.01" min="0.01" required placeholder="0.00" class="mono tnum" />
+      </div>
+      <p class="text-xs subtle">An idempotency key is generated automatically — duplicate submissions are safe.</p>
+      <div class="flex gap-2" style="margin-top: 20px;">
+        <button type="button" onclick="closeModal()" class="btn btn-secondary flex-1">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1">Deposit</button>
+      </div>
+    </form>`);
+  document.getElementById('dep-form').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const data = Object.fromEntries(new FormData(e.target));
+      await api('/transactions/deposit', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': uuid() },
+        body: JSON.stringify({ account_id: account.id, amount: data.amount }),
+      });
+      closeModal();
+      toast(`Deposited ${fmtAmount(data.amount)} ${account.currency}`);
+      await refreshAll();
+    } catch (err) { toast(err.message); }
+  };
+}
+
+function openWithdrawModal(account) {
+  openModal(`Withdraw from ${account.name || account.currency + ' account'}`, `
+    <form id="wd-form" class="space-y-3">
+      <p class="text-xs muted">Available: <span class="mono tnum">${fmtAmount(account.balance)} ${account.currency}</span></p>
+      <div>
+        <label>Amount</label>
+        <input name="amount" type="number" step="0.01" min="0.01" max="${account.balance}" required class="mono tnum" placeholder="0.00" />
+      </div>
+      <p class="text-xs subtle">Overdrafts are rejected atomically (422).</p>
+      <div class="flex gap-2" style="margin-top: 20px;">
+        <button type="button" onclick="closeModal()" class="btn btn-secondary flex-1">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1">Withdraw</button>
+      </div>
+    </form>`);
+  document.getElementById('wd-form').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const data = Object.fromEntries(new FormData(e.target));
+      await api('/transactions/withdraw', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': uuid() },
+        body: JSON.stringify({ account_id: account.id, amount: data.amount }),
+      });
+      closeModal();
+      toast(`Withdrew ${fmtAmount(data.amount)} ${account.currency}`);
+      await refreshAll();
+    } catch (err) { toast(err.message); }
+  };
+}
+
+function openHistoryFor(accountId) {
+  state.selectedHistoryAccount = accountId;
+  document.getElementById('history-account-select').value = accountId;
+  loadHistory(accountId);
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+document.getElementById('transfer-form').onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+    await api('/transactions/transfer', {
+      method: 'POST',
+      headers: { 'Idempotency-Key': uuid() },
+      body: JSON.stringify(data),
+    });
+    e.target.reset();
+    toast('Transfer posted');
+    await refreshAll();
+  } catch (err) { toast(err.message); }
+};
+
+function copyText(s) { navigator.clipboard.writeText(s); toast('Copied'); }
+
+// ---------------------------------------------------------------------------
+// polling
+// ---------------------------------------------------------------------------
+let pollTimer = null;
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => { if (state.accessToken) refreshAll(); }, 4000);
+}
+
+// ---------------------------------------------------------------------------
+// boot
+// ---------------------------------------------------------------------------
+(async () => {
+  if (state.accessToken) {
+    try { await showDashboard(); }
+    catch { state.accessToken = null; localStorage.clear(); }
+  }
+})();
+</script>
+</body>
+</html>
