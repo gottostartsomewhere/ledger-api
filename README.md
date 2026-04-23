@@ -11,6 +11,29 @@ FastAPI · PostgreSQL 16 · Redis 7 · SQLAlchemy 2.0 async · Alembic · Docker
 ![Postgres](https://img.shields.io/badge/Postgres-16-336791)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+## Try it in 2 minutes
+
+```bash
+git clone https://github.com/gottostartsomewhere/ledger-api.git
+cd ledger-api && cp .env.example .env
+docker compose up --build
+```
+
+Then open:
+
+| URL | |
+|---|---|
+| <http://localhost:8000/> | Dashboard — register, create accounts, deposit / transfer / withdraw |
+| <http://localhost:8000/docs> | Swagger UI |
+| <http://localhost:8000/metrics> | Prometheus metrics |
+| <http://localhost:8000/health> | Liveness |
+
+For production, replace `JWT_SECRET` in `.env` with:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
 ---
 
 ## What this is (and what it isn't)
@@ -86,33 +109,6 @@ This API solves all three:
 - **Admin endpoints** — freeze / close accounts, upsert FX rates, reverse transfers via compensation.
 - **Integration tests** — real Postgres + Redis via `testcontainers`; includes a concurrency test that hammers the transfer endpoint to verify the row-lock ordering.
 - **Built-in dashboard** — single static HTML file, vanilla JS, no build step. Served at `/`.
-
----
-
-## Quick start
-
-```bash
-git clone https://github.com/gottostartsomewhere/ledger-api.git
-cd ledger-api
-
-cp .env.example .env
-# generate a real JWT_SECRET and replace it in .env:
-python -c "import secrets; print(secrets.token_urlsafe(64))"
-
-docker compose up --build
-```
-
-That starts three containers (Postgres 16, Redis 7, API), runs `alembic upgrade head`, and boots uvicorn on port 8000.
-
-Then open:
-
-| URL | What |
-|---|---|
-| <http://localhost:8000/> | **Dashboard** (register → create account → deposit / transfer / withdraw) |
-| <http://localhost:8000/docs> | Swagger UI |
-| <http://localhost:8000/redoc> | ReDoc |
-| <http://localhost:8000/metrics> | Prometheus metrics |
-| <http://localhost:8000/health> | Liveness |
 
 ---
 
