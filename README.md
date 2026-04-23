@@ -36,6 +36,42 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/01-dashboard.png" width="800" alt="Dashboard — logged-in view with account balances"/>
+  <br/>
+  <em>Dashboard — per-currency accounts with tabular-aligned balances</em>
+</p>
+
+<p align="center">
+  <img src="docs/02-history.png" width="800" alt="Transaction history with debit and credit entries"/>
+  <br/>
+  <em>Ledger history — every money movement is a balanced debit / credit pair</em>
+</p>
+
+<p align="center">
+  <img src="docs/03-transfer-modal.png" width="600" alt="Transfer dialog with Idempotency-Key"/>
+  <br/>
+  <em>Transfer — every write carries an auto-generated <code>Idempotency-Key</code> so retries are safe</em>
+</p>
+
+<p align="center">
+  <img src="docs/04-swagger.png" width="800" alt="Interactive OpenAPI docs at /docs"/>
+  <br/>
+  <em>Interactive OpenAPI docs at <code>/docs</code> — full request/response schemas for every endpoint</em>
+</p>
+
+<!-- Optional motion demo:
+<p align="center">
+  <img src="docs/05-deposit-flow.gif" width="720" alt="Deposit flow"/>
+  <br/>
+  <em>Deposit → balance updates live</em>
+</p>
+-->
+
+---
+
 ## What this is (and what it isn't)
 
 This is the **ledger layer** of a payment product — the part that remembers whose money is whose. It is not a payment gateway. It doesn't talk to Visa, ACH, SEPA, or UPI. If you "deposit $100" here, nothing moves in the real world; a ledger row is written.
