@@ -24,7 +24,16 @@ class AccountStatus(str, enum.Enum):
 class Account(Base):
     __tablename__ = "accounts"
     __table_args__ = (
-        CheckConstraint("balance >= 0", name="ck_accounts_balance_nonnegative"),
+        # USER accounts must stay non-negative; SYSTEM accounts intentionally
+        # go negative (they represent money that entered the system from
+        # outside on deposit, or left on withdrawal). A per-currency SYSTEM
+        # balance swinging negative is not a solvency signal — the ledger is
+        # balanced when SUM(DEBIT) == SUM(CREDIT) per currency, which it is
+        # by construction inside every Transfer.
+        CheckConstraint(
+            "account_type = 'SYSTEM' OR balance >= 0",
+            name="ck_accounts_balance_nonnegative",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(

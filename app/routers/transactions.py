@@ -45,10 +45,16 @@ async def _run_with_idempotency(
     payload_dict: dict,
     runner,
 ) -> tuple[int, dict]:
+    # Snapshot user.id eagerly. If we touch `user.id` after a rollback/commit
+    # that expired ORM attributes, SQLAlchemy tries to lazy-refresh on the sync
+    # path and trips MissingGreenlet under asyncpg + pool_pre_ping. Caching
+    # the scalar here makes the function rollback-safe.
+    user_id = user.id
+
     idem = IdempotencyService(db)
     request_hash = hash_request(payload_dict)
 
-    cached = await idem.lookup(user.id, key, request_hash)
+    cached = await idem.lookup(user_id, key, request_hash)
     if cached is not None:
         return cached.response_status, cached.response_body
 
@@ -57,7 +63,7 @@ async def _run_with_idempotency(
         response = _serialize_transfer(transfer)
         body = jsonable_encoder(response)
         await idem.store(
-            user_id=user.id,
+            user_id=user_id,
             key=key,
             request_hash=request_hash,
             response_status=status.HTTP_201_CREATED,
@@ -73,7 +79,7 @@ async def _run_with_idempotency(
         # — no double charge. Now re-read the winner's cached response so
         # we return it instead of a generic 409.
         await db.rollback()
-        cached = await idem.lookup(user.id, key, request_hash)
+        cached = await idem.lookup(user_id, key, request_hash)
         if cached is None:
             raise
         return cached.response_status, cached.response_body
