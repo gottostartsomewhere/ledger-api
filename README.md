@@ -51,9 +51,9 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 </p>
 
 <p align="center">
-  <img src="docs/03-transfer-modal.png" width="600" alt="Transfer dialog with Idempotency-Key"/>
+  <img src="docs/03-withdraw-modal.png" width="600" alt="Withdraw dialog — overdrafts rejected atomically"/>
   <br/>
-  <em>Transfer — every write carries an auto-generated <code>Idempotency-Key</code> so retries are safe</em>
+  <em>Write path — every action carries an auto-generated <code>Idempotency-Key</code>, and overdrafts are rejected atomically (422, no ledger rows written)</em>
 </p>
 
 <p align="center">
